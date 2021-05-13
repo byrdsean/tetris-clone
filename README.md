@@ -1,6 +1,7 @@
 # Tetris Clone
 
-This is a tetris clone written in HTML, CSS and Typescript/Javascript.
+<!-- This is a tetris clone written in HTML, CSS and Typescript/Javascript. -->
+This is a tetris clone written in HTML, CSS and Javascript.
 
 ## Compilation instructions (using NPM)
 ### Sass
@@ -16,7 +17,7 @@ This is a tetris clone written in HTML, CSS and Typescript/Javascript.
 
      "--watch" will keep the compiler running and watches for changes
 
-### Typescript
+<!-- ### Typescript
 1. Install Typescript compiler
     ```
     npm install -g typescript
@@ -36,18 +37,31 @@ This is a tetris clone written in HTML, CSS and Typescript/Javascript.
     tsc --project ./ --watch
     ```
 
-    "--watch" will keep the compiler running and watches for changes
+    "--watch" will keep the compiler running and watches for changes -->
 
 ## Build commands
 You can add multiple commands to package.json that will execute when you build the project.
 
-To add the typescript and javascript commands:
+<!-- To add the typescript and javascript commands:
 1. In package.json, in the "scripts" section, add:
     ```
     "build": "tsc --project ./ && sass styles/sass:styles"
     ```
 
     This will run the typescript compiler, then sass compiler (in that order).
+
+2. Run this command to build:
+    ```
+    npm run build
+    ``` -->
+
+To add the sass commands:
+1. In package.json, in the "scripts" section, add:
+    ```
+    "build": "sass styles/sass:styles"
+    ```
+
+    This will run the sass compiler.
 
 2. Run this command to build:
     ```

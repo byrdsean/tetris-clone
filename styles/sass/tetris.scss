@@ -16,6 +16,14 @@ body {
         width:100%;
         text-align: center;
         background-color:green;
+
+        .GameBoard{
+            height: $GameHeight * $TetraminoSize;
+            width: $GameWidth * $TetraminoSize;
+            background: #000000;
+            margin:auto;
+            border: 1px solid red;
+        }
     }
 
     footer{
@@ -24,11 +32,4 @@ body {
         text-align: center;
         background-color:blue;
     }
-}
-
-.Gameboard{
-    height: $GameHeight * $TetraminoSize;
-    width: $GameWidth * $TetraminoSize;
-    background: #000000;
-    margin:auto;
 }

@@ -38,18 +38,18 @@ body main {
   text-align: center;
   background-color: green;
 }
+body main .GameBoard {
+  height: 600px;
+  width: 480px;
+  background: #000000;
+  margin: auto;
+  border: 1px solid red;
+}
 body footer {
   margin: auto;
   width: 100%;
   text-align: center;
   background-color: blue;
-}
-
-.Gameboard {
-  height: 600px;
-  width: 480px;
-  background: #000000;
-  margin: auto;
 }
 
 /*# sourceMappingURL=tetris.css.map */
