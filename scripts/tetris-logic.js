@@ -8,6 +8,7 @@
     let TETRAMINO_SIZE = 30;
     let DidGameStart = false;
     let BoardInfo = [];
+    let AllTetraminos = [];
     let Colors = {
         red : '#FF0000',
         blue : '#0000FF',
@@ -22,7 +23,7 @@
     //Tetraminos
     let L_Tetramino = {
         color: Colors.red,
-        roations : [
+        rotations : [
             [{x : 0, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}, {x : 2, y : 1}],
             [{x : 0, y : 0}, {x : 1, y : 0}, {x : 0, y : 1}, {x : 0, y : 2}],
             [{x : 0, y : 0}, {x : 1, y : 0}, {x : 2, y : 0}, {x : 2, y : 1}],
@@ -31,7 +32,7 @@
     };
     let Reverse_L_Tetramino = {
         color: Colors.blue,
-        roations : [
+        rotations : [
             [{x : 2, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}, {x : 2, y : 1}],
             [{x : 0, y : 0}, {x : 0, y : 1}, {x : 0, y : 2}, {x : 1, y : 2}],
             [{x : 0, y : 0}, {x : 1, y : 0}, {x : 2, y : 0}, {x : 0, y : 1}],
@@ -40,27 +41,27 @@
     };
     let Z_Tetramino = {
         color: Colors.yellow,
-        roations : [
+        rotations : [
             [{x : 0, y : 0}, {x : 1, y : 0}, {x : 1, y : 1}, {x : 2, y : 1}],
             [{x : 1, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}, {x : 1, y : 2}]
         ]
     };
     let S_Tetramino = {
         color: Colors.green,
-        roations : [
+        rotations : [
             [{x : 1, y : 0}, {x : 2, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}],
             [{x : 0, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}, {x : 1, y : 2}]
         ]
     };
     let Block_Tetramino = {
         color: Colors.purple,
-        roations : [
+        rotations : [
             [{x : 0, y : 0}, {x : 1, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}]
         ]
     };
     let Line_Tetramino = {
         color: Colors.orange,
-        roations : [
+        rotations : [
             [{x : 0, y : 0}, {x : 1, y : 0}, {x : 2, y : 0}, {x : 3, y : 0}],
             [{x : 0, y : 0}, {x : 0, y : 1}, {x : 0, y : 2}, {x : 0, y : 3}]
         ]
@@ -74,12 +75,23 @@
         let GameBoardElemet = document.querySelector('.GameBoard');
         GameCanvas = GameBoardElemet.getContext("2d");
 
+        //Store all tetraminos into an array
+        AllTetraminos = [
+            L_Tetramino,
+            Reverse_L_Tetramino,
+            Z_Tetramino,
+            S_Tetramino,
+            Block_Tetramino,
+            Line_Tetramino
+        ];
+
         //Build the game board model
-        for(let r = 0; r < MAX_HEIGHT; r++)
-        {
-            let column = Array(MAX_WIDTH).fill(0);
-            BoardInfo.push(column);
-        }
+        BoardInfo = Array(MAX_HEIGHT).fill(Array(MAX_WIDTH).fill(0));
+        // for(let r = 0; r < MAX_HEIGHT; r++)
+        // {
+        //     let column = Array(MAX_WIDTH).fill(0);
+        //     BoardInfo.push(column);
+        // }
     }
     //-----------------------------------------------------------------------------------------------------------------------------
 
@@ -89,8 +101,54 @@
         //Set flag to know the game has started
         DidGameStart = true;
 
-   
+        //Set the initial block to display the next tetramino
+        let InitialBlock = {x: Math.floor((MAX_WIDTH - 1) / 2), y: 0};
 
+        //Get the next tetramino, and try to display
+        let NextTetramino = GetNextTetramino();
+        let DisplaySuccessful = DisplayTetramino(InitialBlock, NextTetramino);
+
+
+
+
+
+    }
+    //-----------------------------------------------------------------------------------------------------------------------------
+
+    //Try to display the tetramino
+    function DisplayTetramino(InitialBlock, NextTetramino)
+    {
+        //Get the array of coords to display the tetramino
+        let DisplayCoords = NextTetramino.rotations[0].map(coord => {
+            return {
+                x: coord.x + InitialBlock.x,
+                y: coord.y + InitialBlock.y
+            }
+        });
+
+        console.log(DisplayCoords);
+
+        //Display the tetramino
+        DisplayCoords.map(coords => {
+            DrawBlock(coords.x, coords.y, NextTetramino.color, Colors.white)
+        });
+
+
+        
+
+
+
+        return false;
+
+
+    }
+    //-----------------------------------------------------------------------------------------------------------------------------
+
+    //Get the next tetramino, and try to display
+    function GetNextTetramino()
+    {
+        let Index = Math.floor(Math.random() * AllTetraminos.length);
+        return AllTetraminos[Index];
     }
     //-----------------------------------------------------------------------------------------------------------------------------
 
