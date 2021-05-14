@@ -17,6 +17,13 @@ This is a tetris clone written in HTML, CSS and Javascript.
 
      "--watch" will keep the compiler running and watches for changes
 
+### Node modules
+
+To restore any missing node modules, run this command in the root of the project:
+```
+npm install
+```
+
 <!-- ### Typescript
 1. Install Typescript compiler
     ```
