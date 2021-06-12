@@ -12,8 +12,10 @@
     let GameCanvas = null;
     let BoardInfo = [];
     let AllTetraminos = [];
+    let PointsDisplay = null;
     
     //Variables
+    let PlayTetramino = null;           //Current tetramino in play
     let DidGameStart = false;
     let Colors = {
         red : '#FF0000',
@@ -22,6 +24,7 @@
         green : '#00FF00',
         purple : '#3700FF',
         orange : '#FFA500',
+        brown : '#964B00',
         white: '#FFFFFF',
         black: '#000000',
         boardColor: '#000000'
@@ -29,7 +32,18 @@
     let GameBoardStates = {
         Empty: 0,
         InUse: 1,
-        UseByTetraminoInPlay: 2
+        UseByTetraminoInPlay: 2,
+        Invalid: 3
+    };
+    let Progress = {
+        CurrentLevel : 1,
+        CurrentPoints : 0,
+
+        //Set the initial block to display the next tetramino
+        InitialBlock : {x: Math.floor((GAME_BOARD_MAX_WIDTH - 1) / 2), y: 0},
+
+        //Get the current points needed to reach the next level
+        PointsToNextLevel : (level) => {return level * INCREASE_LEVEL_MAX;}
     };
 
     //Tetraminos
@@ -38,6 +52,7 @@
     //How to map the x and y coordinates for each rotation
     let L_Tetramino = {
         color: Colors.red,
+        currentRotation: 0,
         rotations : [
             [{x : 0, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}, {x : 2, y : 1}],
             [{x : 0, y : 0}, {x : 1, y : 0}, {x : 0, y : 1}, {x : 0, y : 2}],
@@ -47,6 +62,7 @@
     };
     let Reverse_L_Tetramino = {
         color: Colors.blue,
+        currentRotation: 0,
         rotations : [
             [{x : 2, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}, {x : 2, y : 1}],
             [{x : 0, y : 0}, {x : 0, y : 1}, {x : 0, y : 2}, {x : 1, y : 2}],
@@ -56,6 +72,7 @@
     };
     let Z_Tetramino = {
         color: Colors.yellow,
+        currentRotation: 0,
         rotations : [
             [{x : 0, y : 0}, {x : 1, y : 0}, {x : 1, y : 1}, {x : 2, y : 1}],
             [{x : 1, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}, {x : 1, y : 2}]
@@ -63,19 +80,22 @@
     };
     let S_Tetramino = {
         color: Colors.green,
+        currentRotation: 0,
         rotations : [
             [{x : 1, y : 0}, {x : 2, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}],
             [{x : 0, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}, {x : 1, y : 2}]
         ]
     };
     let Block_Tetramino = {
-        color: Colors.purple,
+        color: Colors.brown,
+        currentRotation: 0,
         rotations : [
             [{x : 0, y : 0}, {x : 1, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}]
         ]
     };
     let Line_Tetramino = {
         color: Colors.orange,
+        currentRotation: 0,
         rotations : [
             [{x : 0, y : 0}, {x : 1, y : 0}, {x : 2, y : 0}, {x : 3, y : 0}],
             [{x : 0, y : 0}, {x : 0, y : 1}, {x : 0, y : 2}, {x : 0, y : 3}]
@@ -89,6 +109,9 @@
         //Set the gameboard
         let GameBoardElemet = document.querySelector('.GameBoard');
         GameCanvas = GameBoardElemet.getContext("2d");
+
+        //Set additional game components
+        PointsDisplay = document.querySelector('.points');
 
         //Store all tetraminos into an array
         AllTetraminos = [
@@ -108,210 +131,73 @@
             for(let r = 0; r < GAME_BOARD_MAX_HEIGHT; r++)
             {
                 Column.push(GameBoardStates.Empty);
+                DrawBlock(r, c, Colors.black);
             }
             BoardInfo.push(Column);
         }
     }
     //-----------------------------------------------------------------------------------------------------------------------------
 
-    //Start the game
-    function StartGame()
-    {
-        //Set flag to know the game has started
-        DidGameStart = true;
-
-        //Play the game. Get flag to know if the user won or not
-        let DidWin = PlayGame();
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        //console.log(DidWin ? "Win!" : "Lose");
-    }
-    //-----------------------------------------------------------------------------------------------------------------------------
-
-    //Play the game. Returns end game state
-    function PlayGame()
-    {
-        let DidWin = false;
-
-        //Set the initial block to display the next tetramino
-        let InitialBlock = {x: Math.floor((GAME_BOARD_MAX_WIDTH - 1) / 2), y: 0};
-        
-        //Continuously play until the user exceeds the max levels of the game
-        let CurrentPoints = 0;
-        let PointsToNextLevel = 0;
-        for(let CurrentLevel = 1; CurrentLevel <= MAX_LEVELS_IN_GAME; CurrentLevel++)
-        {
-            //Re/set the points to level up
-            CurrentPoints = 0;
-            PointsToNextLevel += INCREASE_LEVEL_MAX;
-
-            //Set the tetramino to play, and the next tetramino coming up
-            let PlayTetramino = GetNextTetramino();
-            let NextTetramino = GetNextTetramino();
-
-            //Setthe block that anchors the tetramino to the board, and remember the previous one
-            let AnchorBlock = InitialBlock;
-            let PreviousAnchor = null;
-
-            //Continuously display new tetraminos until:
-            //a. The user reaches/exceeds the points needed to reach the next level
-            //b. The user can not play any more tetraminos
-            let TetraminoInPlay = false;
-            do {
-                // //Set the next tetramino to play, then set a new "next" tetramino
-                // PlayTetramino = NextTetramino;
-                // NextTetramino = GetNextTetramino();
-
-                //Try to play the current tetramino
-                if(!TetraminoInPlay)
-                {
-                    AnchorBlock = InitialBlock;
-                    PreviousAnchor = null;
-                    TetraminoInPlay = true;
-                }
-                else
-                {
-                    //Try to move the current tetramino down
-                    PreviousAnchor = {x: AnchorBlock.x, y: AnchorBlock.y };
-                    AnchorBlock.y = AnchorBlock.y + 1;
-                }
-
-                //Try to display the current tetramino to play
-                //If we can't, the user lost
-                AnchorBlock = DisplayTetramino(AnchorBlock, PreviousAnchor, PlayTetramino);
-                if(AnchorBlock === null)
-                {
-                    //User lost
-                    break;
-                }
-
-
-
-
-
-
-                CurrentPoints++;
-            }
-            while(CurrentPoints < PointsToNextLevel);
-        }
-
-        //return the flag to know if the user won or now
-        return DidWin;
-    }
-    //-----------------------------------------------------------------------------------------------------------------------------
-
-    //Try to display the tetramino
-    function DisplayTetramino(InitialBlock, PreviousAnchor, NextTetramino)
-    {
-        //Get the array of coords to display the tetramino
-        let DisplayCoords = NextTetramino.rotations[0].map(coord => {
-            return {
-                x: coord.x + InitialBlock.x,
-                y: coord.y + InitialBlock.y
-            }
-        });
-
-        //Check if the tetramino can be placed on the board (empty or block is part of current tetremino)
-        //Sums the values from the appropriate coordinates in the game board
-        let ValidPositions = DisplayCoords.reduce((initVal, coord) => {
-            let StateValue = GameBoardStates.Empty;
-            {
-                let CurrentVal = BoardInfo[coord.x][coord.y];
-                if(CurrentVal !== GameBoardStates.Empty && CurrentVal !== GameBoardStates.UseByTetraminoInPlay)
-                {
-                    StateValue = GameBoardStates.InUse;
-                }
-            }
-            return initVal + StateValue;
-        }, 0);
-
-        //Set the previous coordinates of the tetramino, if possible
-        let PreviousCoords = null;
-        if(PreviousAnchor !== null)
-        {
-            PreviousCoords = NextTetramino.rotations[0].map(coord => {
-                return {
-                    x: coord.x + PreviousAnchor.x,
-                    y: coord.y + PreviousAnchor.y
-                }
-            });
-        }
-
-        //Validate the new position of the tetramino
-        let Anchor = null;
-        if(ValidPositions === 0)
-        {
-            //We can place the tetramino
-            //1. Update the board
-            //2. Draw the tetramino to the new positions on the screen
-
-            //1. Update the board with the previous coordinates, if any
-            if(PreviousCoords !== null)
-            {
-                ResetOrDrawTetramino(PreviousCoords, true, Colors.boardColor);
-            }
-
-            //2. Draw the tetramino to the new positions on the screen
-            ResetOrDrawTetramino(DisplayCoords, false, NextTetramino.color, Colors.white);
-
-            //Set the anchor, which are coordinates with the minimum x and y
-            let x = null, y = null;
-            for(let i=0; i<DisplayCoords.length; i++)
-            {
-                x = (x === null) ? DisplayCoords[i].x : Math.min(x, DisplayCoords[i].x);
-                y = (y === null) ? DisplayCoords[i].y : Math.min(y, DisplayCoords[i].y);
-            }
-            Anchor = {x : x, y : y};
-        }
-        else
-        {
-            //Update the game board to set the tetramino's position as GameBoardStates.InUse
-            if(PreviousCoords !== null)
-            {
-                for(let i = 0; i < PreviousCoords.length; i++)
-                {
-                    let coords = PreviousCoords[i];
-                    BoardInfo[coords.x][coords.y] = GameBoardStates.InUse;
-                }
-            }
-        }
-
-        //return the coords of the block that anchors the tetramino to the board
-        return Anchor;
-    }
-    //-----------------------------------------------------------------------------------------------------------------------------
-
-    //Draw the tetramino, or empty the board at those coordinates
-    function ResetOrDrawTetramino(TetraminoCoords, IsReset, Color, BgColor)
-    {
-        let BoardVal = IsReset ? GameBoardStates.Empty : GameBoardStates.UseByTetraminoInPlay;
-        for(let i=0; i < TetraminoCoords.length; i++)
-        {
-            let coord = TetraminoCoords[i];
-            BoardInfo[coord.x][coord.y] = BoardVal;
-        }
-
-        //Display the tetramino
-        TetraminoCoords.map(coords => {
-            DrawBlock(coords.x, coords.y, Color, BgColor)
-        });
-    }
-    //-----------------------------------------------------------------------------------------------------------------------------
-
-    //Get the next tetramino, and try to display
-    function GetNextTetramino()
+    //Get a random tetramino
+    function GetRandomTetramino()
     {
         let Index = Math.floor(Math.random() * AllTetraminos.length);
         return AllTetraminos[Index];
+    }
+    //-----------------------------------------------------------------------------------------------------------------------------
+
+    //Try to display the tetramino. Returns true or false flag to know if the tetramino was placed
+    //anchorX: X coordinate we want to anchor the tetramino to
+    //anchorY: Y coordinate we want to anchor the tetramino to
+    function DisplayTetramino(anchorX, anchorY, Tetramino)
+    {
+        //Get the array of coords to display the tetramino
+        let DisplayCoords = Tetramino.rotations[Tetramino.currentRotation].map(coord => {
+            return {
+                x: coord.x + anchorX,
+                y: coord.y + anchorY,
+            }
+        });
+
+        //Check if the tetramino can display
+        let IsValidPosition = true;
+        for(let i = 0; i < DisplayCoords.length; i++)
+        {
+            let Coord = DisplayCoords[i];
+
+            //Check that the XY coordinate is within the bounds of the board
+            //If not, set the valid flag to false, and break loop
+            let ValidCoord = 
+                   0 <= Coord.x
+                && 0 <= Coord.y
+                && Coord.x < BoardInfo.length
+                && Coord.y < BoardInfo[Coord.x].length;
+            if(!ValidCoord)
+            {
+                IsValidPosition = false;
+                break;
+            }
+
+            //If the coordinate is empty or already in use by the CURRENT tetramino, then it's a valid position
+            let CurrentBlockStatus = BoardInfo[Coord.x][Coord.y];
+            if(CurrentBlockStatus != GameBoardStates.Empty && CurrentBlockStatus != GameBoardStates.UseByTetraminoInPlay)
+            {
+                IsValidPosition = false;
+                break;
+            }
+        }
+
+        //Display the tetramino
+        if(IsValidPosition)
+        {
+            for(let i = 0; i < DisplayCoords.length; i++)
+            {
+                DrawBlock(DisplayCoords[i].x, DisplayCoords[i].y, Tetramino.color, Colors.white);
+            }
+        }
+
+        //return the success flag
+        return IsValidPosition;
     }
     //-----------------------------------------------------------------------------------------------------------------------------
 
@@ -347,6 +233,24 @@
     }
     //-----------------------------------------------------------------------------------------------------------------------------
 
+    //Play the game
+    function PlayGame()
+    {
+        //Set flag to start the game
+        DidGameStart = true;
+        
+        //Get a random tetramino, and display
+        var Tetramino = GetRandomTetramino();
+        let DisplaySuccess = DisplayTetramino(0, 0, Tetramino);
+
+        console.log({
+            DisplaySuccess: DisplaySuccess
+        });
+
+
+    }
+    //-----------------------------------------------------------------------------------------------------------------------------
+
     //Handle user keyboard input
     document.onkeyup = function(e)
     {
@@ -354,15 +258,37 @@
         if(!DidGameStart)
         {
             //Game didn't start yet. If user pressed ENTER, start the game
-            if(e.key === 'Enter')      //ENTER
+            switch(e.key)
             {
-                //Initialize the game
-                InitGame();
-
-                //Start!
-                StartGame();
+                case "Enter":
+                    //Start!
+                    PlayGame();
+                    break;
+            }
+        }
+        else
+        {
+            //The game has started, so listen for specific commands.
+            switch(e.key)
+            {
+                case "ArrowUp":
+                    console.log('up');
+                    break;
+                case "ArrowDown":
+                    console.log('down');
+                    break;
+                case "ArrowLeft":
+                    console.log('left');
+                    break;
+                case "ArrowRight":
+                    console.log('right');
+                    break;                                        
             }
         }
     }
+    //-----------------------------------------------------------------------------------------------------------------------------
+
+    //Initialize the game
+    InitGame();
     //-----------------------------------------------------------------------------------------------------------------------------
 })();
