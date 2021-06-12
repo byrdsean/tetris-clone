@@ -26,6 +26,7 @@
         brown : '#964B00',
         white: '#FFFFFF',
         black: '#000000',
+        gray: '#808080',
         boardColor: '#000000'
     };
     let GameBoardStates = {
@@ -76,7 +77,7 @@
         color: Colors.yellow,
         rotations : [
             [{x : 0, y : 0}, {x : 1, y : 0}, {x : 1, y : 1}, {x : 2, y : 1}],
-            [{x : 1, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}, {x : 1, y : 2}]
+            [{x : 1, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}, {x : 0, y : 2}]
         ]
     };
     let S_Tetramino = {
@@ -84,6 +85,15 @@
         rotations : [
             [{x : 1, y : 0}, {x : 2, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}],
             [{x : 0, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}, {x : 1, y : 2}]
+        ]
+    };
+    let T_Tetramino = {
+        color: Colors.gray,
+        rotations : [
+            [{x : 0, y : 0}, {x : 1, y : 0}, {x : 2, y : 0}, {x : 1, y : 1}],
+            [{x : 1, y : 0}, {x : 1, y : 1}, {x : 1, y : 2}, {x : 0, y : 1}],
+            [{x : 0, y : 1}, {x : 1, y : 1}, {x : 2, y : 1}, {x : 1, y : 0}],
+            [{x : 0, y : 0}, {x : 0, y : 1}, {x : 0, y : 2}, {x : 1, y : 1}]
         ]
     };
     let Block_Tetramino = {
@@ -145,9 +155,16 @@
     //-----------------------------------------------------------------------------------------------------------------------------
 
     //Get the new coordinates for a tetramino
-    function GetTetraminoCoords(anchorX, anchorY, Tetramino)
+    function GetTetraminoCoords(anchorX, anchorY, rotation)
     {
-        let DisplayCoords = Tetramino.rotations[Progress.CurrentRotation].map(coord => {
+        //Set the rotation if needed
+        if(rotation === null || rotation === undefined)
+        {
+            rotation = Progress.CurrentRotation;
+        }
+
+        //Get the display coordinates
+        let DisplayCoords = Progress.CurrentTetramino.rotations[rotation].map(coord => {
             return {
                 x: coord.x + anchorX,
                 y: coord.y + anchorY,
@@ -191,17 +208,69 @@
     }
     //-----------------------------------------------------------------------------------------------------------------------------
 
+    //Remove the Tetramino from its current coordinates
+    function RemoveTetramino(rotation)
+    {
+        let OldCoords = GetTetraminoCoords(Progress.CurrentAnchor.x, Progress.CurrentAnchor.y, rotation);
+        for(let i = 0; i < OldCoords.length; i++)
+        {
+            let OldX = OldCoords[i].x;
+            let OldY = OldCoords[i].y;
+
+            //Clear the value
+            BoardInfo[OldX][OldY] = GameBoardStates.Empty;
+
+            //Draw a blank block
+            DrawBlock(OldX, OldY, Colors.black);
+        }
+    }
+    //-----------------------------------------------------------------------------------------------------------------------------
+
+    //Try to rotate the tetramino    
+    function RotateTetramino()
+    {
+        //Set the proposed new rotation
+        let OriginalRotation = Progress.CurrentRotation;
+        let NextRotation = (Progress.CurrentRotation + 1) % Progress.CurrentTetramino.rotations.length;
+        Progress.CurrentRotation = NextRotation;
+
+        //Get the array of new coords to display the tetramino
+        let DisplayCoords = GetTetraminoCoords(Progress.CurrentAnchor.x, Progress.CurrentAnchor.y);
+
+        //Check that the new coordinates are valid
+        let IsValidPosition = CheckValidCoordinates(DisplayCoords);
+
+        //If the position is valid, draw the tetramino in the new position
+        if(IsValidPosition)
+        {
+            //Remove the current tetramino from the board
+            RemoveTetramino(OriginalRotation);
+
+            //Draw the current tetramino with the new rotation
+            MoveTetramino(Progress.CurrentAnchor.x, Progress.CurrentAnchor.y);
+        }
+        else
+        {
+            //Set the old rotation value back
+            Progress.CurrentRotation = OriginalRotation;
+        }
+
+        //return the validation flag
+        return IsValidPosition;
+    }
+    //-----------------------------------------------------------------------------------------------------------------------------
+
     //Try to display the tetramino. Returns true or false flag to know if the tetramino was placed
     //anchorX: X coordinate we want to anchor the tetramino to
     //anchorY: Y coordinate we want to anchor the tetramino to
-    function MoveTetramino(anchorX, anchorY, Tetramino)
+    function MoveTetramino(anchorX, anchorY)
     {
         let IsValidPosition = false;
 
-        if(Tetramino !== null && Tetramino !== undefined)
+        if(Progress.CurrentTetramino !== null && Progress.CurrentTetramino !== undefined)
         {
             //Get the array of new coords to display the tetramino
-            let DisplayCoords = GetTetraminoCoords(anchorX, anchorY, Tetramino);
+            let DisplayCoords = GetTetraminoCoords(anchorX, anchorY);
 
             //Check that the new coordinates are valid
             IsValidPosition = CheckValidCoordinates(DisplayCoords);
@@ -209,19 +278,8 @@
             //Display the tetramino
             if(IsValidPosition)
             {
-                //Remove the Tetramino from its current coordinates
-                let OldCoords = GetTetraminoCoords(Progress.CurrentAnchor.x, Progress.CurrentAnchor.y, Tetramino);
-                for(let i = 0; i < OldCoords.length; i++)
-                {
-                    let OldX = OldCoords[i].x;
-                    let OldY = OldCoords[i].y;
-
-                    //Clear the value
-                    BoardInfo[OldX][OldY] = GameBoardStates.Empty;
-
-                    //Draw a blank block
-                    DrawBlock(OldX, OldY, Colors.black);
-                }
+                //Remove the current tetramino
+                RemoveTetramino();
 
                 //Display the tetramino in the new coordinates, and set the new anchor coordinates
                 let NewAnchor = {x : null, y : null};
@@ -238,7 +296,7 @@
                     BoardInfo[NewX][NewY] = GameBoardStates.UseByTetraminoInPlay;
 
                     //Draw the block for the tetramino
-                    DrawBlock(NewX, NewY, Tetramino.color, Colors.white);
+                    DrawBlock(NewX, NewY, Progress.CurrentTetramino.color, Colors.white);
                 }
 
                 //Set the new anchor
@@ -310,11 +368,10 @@
         SetNewTetramino(GetRandomTetramino());
 
         //Display the tetramino
-        let DisplaySuccess = MoveTetramino(Progress.CurrentAnchor.x, Progress.CurrentAnchor.y, Progress.CurrentTetramino);
+        let DisplaySuccess = MoveTetramino(Progress.CurrentAnchor.x, Progress.CurrentAnchor.y);
 
-        console.log({
-            DisplaySuccess: DisplaySuccess
-        });
+
+
 
 
     }
@@ -342,18 +399,19 @@
             {
                 case "ArrowUp":
                     console.log('up');
+                    RotateTetramino();
                     break;
                 case "ArrowDown":
                     console.log('down');
-                    MoveTetramino(Progress.CurrentAnchor.x, Progress.CurrentAnchor.y + 1, Progress.CurrentTetramino);
+                    MoveTetramino(Progress.CurrentAnchor.x, Progress.CurrentAnchor.y + 1);
                     break;
                 case "ArrowLeft":
                     console.log('left');
-                    MoveTetramino(Progress.CurrentAnchor.x-1, Progress.CurrentAnchor.y, Progress.CurrentTetramino);
+                    MoveTetramino(Progress.CurrentAnchor.x-1, Progress.CurrentAnchor.y);
                     break;
                 case "ArrowRight":
                     console.log('right');
-                    MoveTetramino(Progress.CurrentAnchor.x+1, Progress.CurrentAnchor.y, Progress.CurrentTetramino);
+                    MoveTetramino(Progress.CurrentAnchor.x+1, Progress.CurrentAnchor.y);
                     break;                                        
             }
         }
