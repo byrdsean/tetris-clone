@@ -44,8 +44,9 @@
 
         //Current Tetramino, and its rotation
         CurrentRotation: 0,
-        CurrentTetramino: null,
         CurrentAnchor: null,
+        CurrentTetramino: null,
+        NextTetramino: null,
 
         //Get the current points needed to reach the next level
         PointsToNextLevel : (level) => {return level * INCREASE_LEVEL_MAX;}
@@ -128,7 +129,8 @@
             Z_Tetramino,
             S_Tetramino,
             Block_Tetramino,
-            Line_Tetramino
+            Line_Tetramino,
+            T_Tetramino
         ];
 
         //Build the game board model
@@ -341,20 +343,48 @@
     }
     //-----------------------------------------------------------------------------------------------------------------------------
 
-    //Set a new tetramino
-    function SetNewTetramino(NewTetramino)
+    //Set a new tetramino, and display it to the board
+    function SetNewTetramino()
     {
+        //Set the new current tetramino
+        Progress.CurrentTetramino = (Progress.NextTetramino !== null && Progress.NextTetramino !== undefined)
+            ? Progress.NextTetramino
+            : GetRandomTetramino();
+
+        //Reset the initial block and the next tetramino
+        Progress.CurrentAnchor = Progress.InitialBlock;
+        Progress.NextTetramino = GetRandomTetramino();
         Progress.CurrentRotation = 0;
-        if(NewTetramino !== null && NewTetramino !== undefined)
+
+        //Display the tetramino
+        let DisplaySuccess = MoveTetramino(Progress.CurrentAnchor.x, Progress.CurrentAnchor.y);
+        return DisplaySuccess;
+    }
+    //-----------------------------------------------------------------------------------------------------------------------------
+
+    //Set the current tetramino's blocks as in use
+    function SetTetraminoSpaceInUse()
+    {
+        //Get the array of new coords to display the tetramino
+        let DisplayCoords = GetTetraminoCoords(Progress.CurrentAnchor.x, Progress.CurrentAnchor.y);
+
+        //Update the board
+        for(let i = 0; i < DisplayCoords.length; i++)
         {
-            Progress.CurrentTetramino = NewTetramino;
-            Progress.CurrentAnchor = Progress.InitialBlock;
+            //Set the board values
+            let Coord = DisplayCoords[i];
+            BoardInfo[Coord.x][Coord.y] = GameBoardStates.InUse;
         }
-        else
-        {
-            Progress.CurrentTetramino = null;
-            Progress.CurrentAnchor = null;
-        }
+    }
+    //-----------------------------------------------------------------------------------------------------------------------------
+
+    //Clear the game loop
+    function ClearGameLoop(ClearIntervalID)
+    {
+        clearInterval(ClearIntervalID);
+
+        //Reset flag to know that the current game has ended.
+        DidGameStart = false;
     }
     //-----------------------------------------------------------------------------------------------------------------------------
 
@@ -363,13 +393,42 @@
     {
         //Set flag to start the game
         DidGameStart = true;
-        
-        //Set a new random tetramino
-        SetNewTetramino(GetRandomTetramino());
 
-        //Display the tetramino
-        let DisplaySuccess = MoveTetramino(Progress.CurrentAnchor.x, Progress.CurrentAnchor.y);
+        //Set the game loop to move the tetramino down
+        let ClearIntervalID = setInterval(function(){
 
+            //Set the new tetramino if needed
+            let SuccessfulPlacement = false;
+            if(Progress.CurrentTetramino === null || Progress.CurrentTetramino === undefined)
+            {
+                //Set a new random tetramino to the board
+                SuccessfulPlacement = SetNewTetramino();
+            }
+            else
+            {
+                //Try to move the existing tetramino down
+                SuccessfulPlacement = MoveTetramino(Progress.CurrentAnchor.x, Progress.CurrentAnchor.y + 1);
+            }
+
+            //If the move was UNsuccessful, then the tetramino can no longer move down.
+            //Set the next tetramino to play
+            if(!SuccessfulPlacement)
+            {
+                //Set the coordinates of the current tetramino on the board to GameBoardStates.InUse
+                SetTetraminoSpaceInUse();
+
+                //Set a new random tetramino to the board
+                let DisplaySuccess = SetNewTetramino();
+
+                //Check if we should remove a complete line of blocks
+
+                //If the tetramino could not be placed, end the loop
+                if(!DisplaySuccess)
+                {
+                    ClearGameLoop(ClearIntervalID);
+                }
+            }
+        }, 1000);
 
 
 
