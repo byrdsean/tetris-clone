@@ -5,9 +5,10 @@
     const GAME_BOARD_MAX_WIDTH = 16;    //Number of pieces of the game board's width
     const GAME_BOARD_MAX_HEIGHT = 20;   //Number of pieces of the game board's height
     const TETRAMINO_SIZE = 30;          //Size (pixels) of the tetramino's height/width
-    const INCREASE_LEVEL_MAX = 100;     //Amount to increase the level's max points to go to the next level
-    const MAX_LEVELS_IN_GAME = 10;      //Maximum levels in the game
+    const INCREASE_LEVEL_MAX = 40;      //Amount to increase the level's max points to go to the next level
+    const MAX_LEVELS_IN_GAME = 3;       //Maximum levels in the game
     const POINT_COMPLETE_ROW = 20;      //Amount of points user gets for completing 1 row
+    const INCREASE_SPEED_AMOUNT = 150;  //Increase the speed of the game by a certain amount
     const FIXED_BLOCK_OFFSET = 1000;    //Offset the Id of a fixed block on the gameboard, so we can differentiate
                                         //between previous blocks and current blocks of the same tetramino
 
@@ -16,6 +17,8 @@
     let BoardInfo = [];                 //2D array
     let AllTetraminos = {};
     let PointsDisplay = null;
+    let LevelDisplay = null;
+    let PointsLevelUpDisplay = null;
     
     //Variables
     let DidGameStart = false;
@@ -39,6 +42,9 @@
     let Progress = {
         CurrentLevel : 1,
         CurrentPoints : 0,
+
+        //Amount of time the loop waits, in milliseconds
+        GameLoopWaitTime: 500,
 
         //Set the initial block to display the next tetramino
         InitialBlock : {x: Math.floor((GAME_BOARD_MAX_WIDTH - 1) / 2), y: 0},
@@ -129,6 +135,9 @@
 
         //Set additional game components
         PointsDisplay = document.querySelector('.points');
+        PointsLevelUpDisplay = document.querySelector('.levelup');
+        LevelDisplay = document.querySelector('.level');
+        DisplayLevel();
 
         //Store all tetraminos into a dictionary
         AllTetraminos[L_Tetramino.id] = L_Tetramino;
@@ -140,7 +149,6 @@
         AllTetraminos[T_Tetramino.id] = T_Tetramino;
 
         //Build the game board model
-        //BoardInfo = Array(GAME_BOARD_MAX_WIDTH).fill(Array(GAME_BOARD_MAX_HEIGHT).fill(0));
         for(let c = 0; c < GAME_BOARD_MAX_WIDTH; c++)
         {
             let Column = [];
@@ -151,6 +159,34 @@
             }
             BoardInfo.push(Column);
         }
+
+        //Reset the progress variables
+        ResetProgress();
+    }
+    //-----------------------------------------------------------------------------------------------------------------------------
+
+    //Reset the progress
+    function ResetProgress()
+    {
+        Progress.CurrentPoints = 0;
+        Progress.CurrentRotation = 0;
+        Progress.CurrentAnchor = null;
+        Progress.CurrentTetramino = null;
+        Progress.NextTetramino = null;
+    }
+    //-----------------------------------------------------------------------------------------------------------------------------
+
+    //Display level
+    function DisplayLevel()
+    {
+        LevelDisplay.innerHTML = Progress.CurrentLevel.toString();
+    }
+    //-----------------------------------------------------------------------------------------------------------------------------
+
+    //Display points
+    function DisplayPoints()
+    {
+        PointsDisplay.innerHTML = Progress.CurrentPoints.toString();
     }
     //-----------------------------------------------------------------------------------------------------------------------------
 
@@ -479,7 +515,7 @@
 
                     //Update the user's points and display
                     Progress.CurrentPoints += POINT_COMPLETE_ROW;
-                    PointsDisplay.innerHTML = Progress.CurrentPoints.toString();
+                    DisplayPoints();
                 }                
             }
         }
@@ -496,12 +532,9 @@
     }
     //-----------------------------------------------------------------------------------------------------------------------------
 
-    //Play the game
-    function PlayGame()
+    //Start the game loop
+    function StartGameLoop()
     {
-        //Set flag to start the game
-        DidGameStart = true;
-
         //Set the game loop to move the tetramino down
         let ClearIntervalID = setInterval(function(){
 
@@ -524,17 +557,75 @@
             {
                 //Check if we should remove a complete line of blocks
                 CheckCompletedLines();
-                
-                //Set a new random tetramino to the board
-                let DisplaySuccess = SetNewTetramino();
 
-                //If the tetramino could not be placed, end the loop
-                if(!DisplaySuccess)
+                //Check if the user reached the points for the next level
+                let PointsToLevelUp = Progress.PointsToNextLevel(Progress.CurrentLevel);
+                if(PointsToLevelUp <= Progress.CurrentPoints)
                 {
+                    //Stop the game loop
                     ClearGameLoop(ClearIntervalID);
+
+                    //Check if the user should level up, or won the game
+                    if(Progress.CurrentLevel < MAX_LEVELS_IN_GAME)
+                    {
+                        //Level up
+                        Progress.CurrentLevel += 1;
+                        DisplayLevel();
+
+                        //Reset the board
+                        for(let x = 0; x < GAME_BOARD_MAX_WIDTH; x++)
+                        {
+                            for(let y = 0; y < GAME_BOARD_MAX_HEIGHT; y++)
+                            {
+                                BoardInfo[x][y] = GameBoardStates.Empty;
+                                DrawBlock(x, y, Colors.black);
+                            }
+                        }
+
+                        //Reset progress
+                        ResetProgress();
+
+                        //Increase speed by decreasing the wait interval
+                        //Ensure that it never goes below 10 milliseconds
+                        Progress.GameLoopWaitTime -= INCREASE_SPEED_AMOUNT;
+                        if(Progress.GameLoopWaitTime < 10)
+                        {
+                            Progress.GameLoopWaitTime = 10;
+                        }
+                    }
+                    else
+                    {
+                        //The user beat the game!
+                        PointsDisplay.innerHTML = 'You win! Thanks for playing!'                        
+                    }
+                }
+                else
+                {
+                    //Set a new random tetramino to the board
+                    let DisplaySuccess = SetNewTetramino();
+
+                    //If the tetramino could not be placed, end the loop
+                    if(!DisplaySuccess)
+                    {
+                        ClearGameLoop(ClearIntervalID);
+                    }
                 }
             }
-        }, 300);//1000
+        }, Progress.GameLoopWaitTime);
+    }
+    //-----------------------------------------------------------------------------------------------------------------------------
+
+    //Play the game
+    function PlayGame()
+    {
+        //Set flag to start the game
+        DidGameStart = true;
+
+        //Display the points to reach the next level
+        PointsLevelUpDisplay.innerHTML = Progress.PointsToNextLevel(Progress.CurrentLevel).toString();
+
+        //Start the game loop
+        StartGameLoop();
     }
     //-----------------------------------------------------------------------------------------------------------------------------
 
@@ -559,19 +650,15 @@
             switch(e.key)
             {
                 case "ArrowUp":
-                    console.log('up');
                     RotateTetramino();
                     break;
                 case "ArrowDown":
-                    console.log('down');
                     MoveDown();
                     break;
                 case "ArrowLeft":
-                    console.log('left');
                     MoveLeft();
                     break;
                 case "ArrowRight":
-                    console.log('right');
                     MoveRight();
                     break;                                        
             }
