@@ -5,13 +5,16 @@
     const GAME_BOARD_MAX_WIDTH = 16;    //Number of pieces of the game board's width
     const GAME_BOARD_MAX_HEIGHT = 20;   //Number of pieces of the game board's height
     const TETRAMINO_SIZE = 30;          //Size (pixels) of the tetramino's height/width
-    const INCREASE_LEVEL_MAX = 500;     //Amount to increase the level's max points to go to the next level
+    const INCREASE_LEVEL_MAX = 100;     //Amount to increase the level's max points to go to the next level
     const MAX_LEVELS_IN_GAME = 10;      //Maximum levels in the game
+    const POINT_COMPLETE_ROW = 20;      //Amount of points user gets for completing 1 row
+    const FIXED_BLOCK_OFFSET = 1000;    //Offset the Id of a fixed block on the gameboard, so we can differentiate
+                                        //between previous blocks and current blocks of the same tetramino
 
     //Game components
     let GameCanvas = null;
     let BoardInfo = [];                 //2D array
-    let AllTetraminos = [];
+    let AllTetraminos = {};
     let PointsDisplay = null;
     
     //Variables
@@ -31,9 +34,7 @@
     };
     let GameBoardStates = {
         Empty: 0,
-        InUse: 1,
-        UseByTetraminoInPlay: 2,
-        Invalid: 3
+        Invalid: -1
     };
     let Progress = {
         CurrentLevel : 1,
@@ -57,6 +58,7 @@
     //Color of its blocks
     //How to map the x and y coordinates for each rotation
     let L_Tetramino = {
+        id: 1,
         color: Colors.red,
         rotations : [
             [{x : 0, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}, {x : 2, y : 1}],
@@ -66,6 +68,7 @@
         ]
     };
     let Reverse_L_Tetramino = {
+        id: 2,
         color: Colors.blue,
         rotations : [
             [{x : 2, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}, {x : 2, y : 1}],
@@ -75,6 +78,7 @@
         ]
     };
     let Z_Tetramino = {
+        id: 3,
         color: Colors.yellow,
         rotations : [
             [{x : 0, y : 0}, {x : 1, y : 0}, {x : 1, y : 1}, {x : 2, y : 1}],
@@ -82,6 +86,7 @@
         ]
     };
     let S_Tetramino = {
+        id: 4,
         color: Colors.green,
         rotations : [
             [{x : 1, y : 0}, {x : 2, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}],
@@ -89,6 +94,7 @@
         ]
     };
     let T_Tetramino = {
+        id: 5,
         color: Colors.gray,
         rotations : [
             [{x : 0, y : 0}, {x : 1, y : 0}, {x : 2, y : 0}, {x : 1, y : 1}],
@@ -98,12 +104,14 @@
         ]
     };
     let Block_Tetramino = {
+        id: 6,
         color: Colors.brown,
         rotations : [
             [{x : 0, y : 0}, {x : 1, y : 0}, {x : 0, y : 1}, {x : 1, y : 1}]
         ]
     };
     let Line_Tetramino = {
+        id: 7,
         color: Colors.orange,
         rotations : [
             [{x : 0, y : 0}, {x : 1, y : 0}, {x : 2, y : 0}, {x : 3, y : 0}],
@@ -122,16 +130,14 @@
         //Set additional game components
         PointsDisplay = document.querySelector('.points');
 
-        //Store all tetraminos into an array
-        AllTetraminos = [
-            L_Tetramino,
-            Reverse_L_Tetramino,
-            Z_Tetramino,
-            S_Tetramino,
-            Block_Tetramino,
-            Line_Tetramino,
-            T_Tetramino
-        ];
+        //Store all tetraminos into a dictionary
+        AllTetraminos[L_Tetramino.id] = L_Tetramino;
+        AllTetraminos[Reverse_L_Tetramino.id] = Reverse_L_Tetramino;
+        AllTetraminos[Z_Tetramino.id] = Z_Tetramino;
+        AllTetraminos[S_Tetramino.id] = S_Tetramino;
+        AllTetraminos[Block_Tetramino.id] = Block_Tetramino;
+        AllTetraminos[Line_Tetramino.id] = Line_Tetramino;
+        AllTetraminos[T_Tetramino.id] = T_Tetramino;
 
         //Build the game board model
         //BoardInfo = Array(GAME_BOARD_MAX_WIDTH).fill(Array(GAME_BOARD_MAX_HEIGHT).fill(0));
@@ -151,8 +157,9 @@
     //Get a random tetramino
     function GetRandomTetramino()
     {
-        let Index = Math.floor(Math.random() * AllTetraminos.length);
-        return AllTetraminos[Index];
+        let keys = Object.keys(AllTetraminos);
+        let Index = Math.floor(Math.random() * keys.length);
+        return AllTetraminos[keys[Index]];
     }
     //-----------------------------------------------------------------------------------------------------------------------------
 
@@ -200,7 +207,7 @@
 
             //If the coordinate is empty or already in use by the CURRENT tetramino, then it's a valid position
             let CurrentBlockStatus = BoardInfo[Coord.x][Coord.y];
-            if(CurrentBlockStatus != GameBoardStates.Empty && CurrentBlockStatus != GameBoardStates.UseByTetraminoInPlay)
+            if(!(CurrentBlockStatus === GameBoardStates.Empty || CurrentBlockStatus === Progress.CurrentTetramino.id))
             {
                 IsValidPosition = false;
                 break;
@@ -295,7 +302,7 @@
                     NewAnchor.y = NewAnchor.y === null ? NewY : Math.min(NewAnchor.y, NewY);
 
                     //Set the board values
-                    BoardInfo[NewX][NewY] = GameBoardStates.UseByTetraminoInPlay;
+                    BoardInfo[NewX][NewY] = Progress.CurrentTetramino.id;
 
                     //Draw the block for the tetramino
                     DrawBlock(NewX, NewY, Progress.CurrentTetramino.color, Colors.white);
@@ -308,6 +315,41 @@
 
         //return the success flag
         return IsValidPosition;
+    }
+    //-----------------------------------------------------------------------------------------------------------------------------
+
+    //Move the tetramino down.
+    function MoveDown()
+    {
+        let SuccessfulPlacement = MoveTetramino(Progress.CurrentAnchor.x, Progress.CurrentAnchor.y + 1);
+
+        //If the placement was UNsuccessful, then set the appropriate board values to the offset ID for the tetramino
+        if(!SuccessfulPlacement)
+        {
+            let DisplayCoords = GetTetraminoCoords(Progress.CurrentAnchor.x, Progress.CurrentAnchor.y);
+            for(let i=0; i<DisplayCoords.length;i++)
+            {
+                let Coords = DisplayCoords[i];
+                BoardInfo[Coords.x][Coords.y] = FIXED_BLOCK_OFFSET + Progress.CurrentTetramino.id;
+            }
+        }
+
+        //return the flag
+        return SuccessfulPlacement;
+    }
+    //-----------------------------------------------------------------------------------------------------------------------------
+
+    //Move the tetramino left.
+    function MoveLeft()
+    {
+        return MoveTetramino(Progress.CurrentAnchor.x-1, Progress.CurrentAnchor.y);
+    }
+    //-----------------------------------------------------------------------------------------------------------------------------
+
+    //Move the tetramino right.
+    function MoveRight()
+    {
+        return MoveTetramino(Progress.CurrentAnchor.x+1, Progress.CurrentAnchor.y);
     }
     //-----------------------------------------------------------------------------------------------------------------------------
 
@@ -362,18 +404,84 @@
     }
     //-----------------------------------------------------------------------------------------------------------------------------
 
-    //Set the current tetramino's blocks as in use
-    function SetTetraminoSpaceInUse()
+    //Check if we should remove a complete line of blocks
+    function CheckCompletedLines()
     {
         //Get the array of new coords to display the tetramino
         let DisplayCoords = GetTetraminoCoords(Progress.CurrentAnchor.x, Progress.CurrentAnchor.y);
 
-        //Update the board
-        for(let i = 0; i < DisplayCoords.length; i++)
+        //Loop through the display coordinates, and check each distinct Y value's row to see if the row is complete
+        let YSet = new Set();
+        for(let i=0; i<DisplayCoords.length;i++)
         {
-            //Set the board values
-            let Coord = DisplayCoords[i];
-            BoardInfo[Coord.x][Coord.y] = GameBoardStates.InUse;
+            let CoordY = DisplayCoords[i].y;
+            if(!YSet.has(CoordY))
+            {
+                //Add the coordinate to the set, so we don't risk evaluating the same row multiple times
+                YSet.add(CoordY);
+
+                //Check the row to see if it is complete
+                let BlocksInUse = 0;
+                for(let x=0; x<GAME_BOARD_MAX_WIDTH; x++)
+                {
+                    if(0 < BoardInfo[x][CoordY])
+                    {
+                        BlocksInUse++;
+                    }
+                }
+
+                //If "BlocksInUse" === GAME_BOARD_MAX_WIDTH, then the entire row is complete.
+                //Update the user's points, remove the row, and push all rows above down by 1
+                if(BlocksInUse === GAME_BOARD_MAX_WIDTH)
+                {
+                    //Remove the row
+                    for(let x=0; x<GAME_BOARD_MAX_WIDTH; x++)
+                    {
+                        //Set the block as empty, and draw an empty block
+                        BoardInfo[x][CoordY] = GameBoardStates.Empty;
+                        DrawBlock(x, CoordY, Colors.black);
+                    }
+
+                    //Push all rows above down by 1
+                    for(let y=CoordY; y>=0; y--)
+                    {
+                        let YAbove = y - 1;
+                        let HasRowAbove = YAbove >= 0;
+                        for(let x=0; x<GAME_BOARD_MAX_WIDTH; x++)
+                        {
+                            if(HasRowAbove)
+                            {
+                                //Copy the value of the block above. Then redraw the block above into the existing block
+                                BoardInfo[x][y] = BoardInfo[x][YAbove];
+
+                                //Draw the appropriate block
+                                switch(BoardInfo[x][y])
+                                {
+                                    case GameBoardStates.Empty:
+                                        DrawBlock(x, y, Colors.black);
+                                        break;
+                                    default:
+                                        if(0 < BoardInfo[x][y])
+                                        {
+                                            DrawBlock(x, y, AllTetraminos[BoardInfo[x][y] - FIXED_BLOCK_OFFSET].color, Colors.white);
+                                        }
+                                        break;
+                                }
+                            }
+                            else
+                            {
+                                //There is no row above, so the the block to empty, and draw an empy block
+                                BoardInfo[x][y] = GameBoardStates.Empty;
+                                DrawBlock(x, y, Colors.black);
+                            }
+                        }
+                    }
+
+                    //Update the user's points and display
+                    Progress.CurrentPoints += POINT_COMPLETE_ROW;
+                    PointsDisplay.innerHTML = Progress.CurrentPoints.toString();
+                }                
+            }
         }
     }
     //-----------------------------------------------------------------------------------------------------------------------------
@@ -407,20 +515,18 @@
             else
             {
                 //Try to move the existing tetramino down
-                SuccessfulPlacement = MoveTetramino(Progress.CurrentAnchor.x, Progress.CurrentAnchor.y + 1);
+                SuccessfulPlacement = MoveDown();
             }
 
             //If the move was UNsuccessful, then the tetramino can no longer move down.
             //Set the next tetramino to play
             if(!SuccessfulPlacement)
             {
-                //Set the coordinates of the current tetramino on the board to GameBoardStates.InUse
-                SetTetraminoSpaceInUse();
-
+                //Check if we should remove a complete line of blocks
+                CheckCompletedLines();
+                
                 //Set a new random tetramino to the board
                 let DisplaySuccess = SetNewTetramino();
-
-                //Check if we should remove a complete line of blocks
 
                 //If the tetramino could not be placed, end the loop
                 if(!DisplaySuccess)
@@ -428,11 +534,7 @@
                     ClearGameLoop(ClearIntervalID);
                 }
             }
-        }, 1000);
-
-
-
-
+        }, 300);//1000
     }
     //-----------------------------------------------------------------------------------------------------------------------------
 
@@ -462,15 +564,15 @@
                     break;
                 case "ArrowDown":
                     console.log('down');
-                    MoveTetramino(Progress.CurrentAnchor.x, Progress.CurrentAnchor.y + 1);
+                    MoveDown();
                     break;
                 case "ArrowLeft":
                     console.log('left');
-                    MoveTetramino(Progress.CurrentAnchor.x-1, Progress.CurrentAnchor.y);
+                    MoveLeft();
                     break;
                 case "ArrowRight":
                     console.log('right');
-                    MoveTetramino(Progress.CurrentAnchor.x+1, Progress.CurrentAnchor.y);
+                    MoveRight();
                     break;                                        
             }
         }
