@@ -38,9 +38,23 @@ body main {
   text-align: center;
   background-color: green;
 }
-body main .GameBoard {
+body main .mainGameArea {
+  display: flex;
+  justify-content: center;
+}
+body main .mainGameArea > div {
+  margin: 0 20px;
+}
+body main .mainGameArea .GameBoard {
   height: 600px;
   width: 480px;
+  background: #000000;
+  margin: auto;
+  border: 1px solid red;
+}
+body main .mainGameArea .NextBoard {
+  height: 120px;
+  width: 180px;
   background: #000000;
   margin: auto;
   border: 1px solid red;

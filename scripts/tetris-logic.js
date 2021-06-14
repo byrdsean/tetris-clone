@@ -4,6 +4,8 @@
     //Constants
     const GAME_BOARD_MAX_WIDTH = 16;    //Number of pieces of the game board's width
     const GAME_BOARD_MAX_HEIGHT = 20;   //Number of pieces of the game board's height
+    const NEXT_BOARD_MAX_WIDTH = 6;     //Number of pieces of the next board's width
+    const NEXT_BOARD_MAX_HEIGHT = 4;    //Number of pieces of the next board's height
     const TETRAMINO_SIZE = 30;          //Size (pixels) of the tetramino's height/width
     const INCREASE_LEVEL_MAX = 40;      //Amount to increase the level's max points to go to the next level
     const MAX_LEVELS_IN_GAME = 3;       //Maximum levels in the game
@@ -14,6 +16,7 @@
 
     //Game components
     let GameCanvas = null;
+    let NextCanvas = null;
     let BoardInfo = [];                 //2D array
     let AllTetraminos = {};
     let PointsDisplay = null;
@@ -22,6 +25,7 @@
     
     //Variables
     let DidGameStart = false;
+    let IsGameOver = false;
     let Colors = {
         red : '#FF0000',
         blue : '#0000FF',
@@ -133,6 +137,10 @@
         let GameBoardElemet = document.querySelector('.GameBoard');
         GameCanvas = GameBoardElemet.getContext("2d");
 
+        //Set the board for the next tetramino
+        let NextBoardElemet = document.querySelector('.NextBoard');
+        NextCanvas = NextBoardElemet.getContext("2d");
+
         //Set additional game components
         PointsDisplay = document.querySelector('.points');
         PointsLevelUpDisplay = document.querySelector('.levelup');
@@ -200,7 +208,7 @@
     //-----------------------------------------------------------------------------------------------------------------------------
 
     //Get the new coordinates for a tetramino
-    function GetTetraminoCoords(anchorX, anchorY, rotation)
+    function GetTetraminoCoords(anchorX, anchorY, rotation, tetramino)
     {
         //Set the rotation if needed
         if(rotation === null || rotation === undefined)
@@ -208,8 +216,13 @@
             rotation = Progress.CurrentRotation;
         }
 
+        if(tetramino === null || tetramino === undefined)
+        {
+            tetramino = Progress.CurrentTetramino;
+        }
+
         //Get the display coordinates
-        let DisplayCoords = Progress.CurrentTetramino.rotations[rotation].map(coord => {
+        let DisplayCoords = tetramino.rotations[rotation].map(coord => {
             return {
                 x: coord.x + anchorX,
                 y: coord.y + anchorY,
@@ -390,8 +403,13 @@
     //-----------------------------------------------------------------------------------------------------------------------------
 
     //Draw a block to the screen
-    function DrawBlock(x, y, color, borderColor)
+    function DrawBlock(x, y, color, borderColor, SelectCanvas)
     {
+        if(SelectCanvas === null || SelectCanvas === undefined)
+        {
+            SelectCanvas = GameCanvas;
+        }
+
         //Set the x and y position relative to the game board
         let x_pos = x*TETRAMINO_SIZE;
         let y_pos = y*TETRAMINO_SIZE;
@@ -403,16 +421,16 @@
         if(HasBorder)
         {
             //Draw the square
-            GameCanvas.fillStyle = borderColor;
-            GameCanvas.fillRect(x_pos, y_pos, TETRAMINO_SIZE, TETRAMINO_SIZE);
+            SelectCanvas.fillStyle = borderColor;
+            SelectCanvas.fillRect(x_pos, y_pos, TETRAMINO_SIZE, TETRAMINO_SIZE);
 
             //Set the border width
             BorderWidth = 1;
         }
         
         //Display the main block
-        GameCanvas.fillStyle = color;
-        GameCanvas.fillRect(
+        SelectCanvas.fillStyle = color;
+        SelectCanvas.fillRect(
             x_pos + BorderWidth,
             y_pos + BorderWidth,
             TETRAMINO_SIZE - (2*BorderWidth),
@@ -436,6 +454,29 @@
 
         //Display the tetramino
         let DisplaySuccess = MoveTetramino(Progress.CurrentAnchor.x, Progress.CurrentAnchor.y);
+
+        //Get the coordinates to draw the next tetramino in the appropriate canvas
+        let NextCoords = GetTetraminoCoords(1, 1, 0, Progress.NextTetramino);
+        if(NextCoords !== null && NextCoords !== undefined && 0 < NextCoords.length)
+        {
+            //Clear the next canvas
+            for(let x=0; x<NEXT_BOARD_MAX_WIDTH; x++)
+            {
+                for(let y=0; y<NEXT_BOARD_MAX_HEIGHT; y++)
+                {
+                    DrawBlock(x, y, Colors.black, null, NextCanvas);
+                }
+            }
+
+            //Draw the next tetramino
+            for(let i=0; i<NextCoords.length;i++)
+            {
+                let Coords = NextCoords[i];
+                DrawBlock(Coords.x, Coords.y, Progress.NextTetramino.color, Colors.white, NextCanvas);
+            }
+        }
+
+        //return the success flag
         return DisplaySuccess;
     }
     //-----------------------------------------------------------------------------------------------------------------------------
@@ -607,7 +648,9 @@
                     //If the tetramino could not be placed, end the loop
                     if(!DisplaySuccess)
                     {
+                        PointsDisplay.innerHTML = 'Sorry, you lose. GAME OVER'
                         ClearGameLoop(ClearIntervalID);
+                        IsGameOver = true;
                     }
                 }
             }
@@ -633,34 +676,37 @@
     document.onkeyup = function(e)
     {
         e = e || window.event;
-        if(!DidGameStart)
+        if(!IsGameOver)
         {
-            //Game didn't start yet. If user pressed ENTER, start the game
-            switch(e.key)
-            {
-                case "Enter":
-                    //Start playing!
-                    PlayGame();
-                    break;
+            if(!DidGameStart)
+            {    
+                //Game didn't start yet. If user pressed ENTER, start the game
+                switch(e.key)
+                {
+                    case "Enter":
+                        //Start playing!
+                        PlayGame();
+                        break;
+                }
             }
-        }
-        else
-        {
-            //The game has started, so listen for specific commands.
-            switch(e.key)
+            else
             {
-                case "ArrowUp":
-                    RotateTetramino();
-                    break;
-                case "ArrowDown":
-                    MoveDown();
-                    break;
-                case "ArrowLeft":
-                    MoveLeft();
-                    break;
-                case "ArrowRight":
-                    MoveRight();
-                    break;                                        
+                //The game has started, so listen for specific commands.
+                switch(e.key)
+                {
+                    case "ArrowUp":
+                        RotateTetramino();
+                        break;
+                    case "ArrowDown":
+                        MoveDown();
+                        break;
+                    case "ArrowLeft":
+                        MoveLeft();
+                        break;
+                    case "ArrowRight":
+                        MoveRight();
+                        break;                                        
+                }
             }
         }
     }

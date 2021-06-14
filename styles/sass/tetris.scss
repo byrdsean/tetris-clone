@@ -17,12 +17,29 @@ body {
         text-align: center;
         background-color:green;
 
-        .GameBoard{
-            height: $GameHeight * $TetraminoSize;
-            width: $GameWidth * $TetraminoSize;
-            background: #000000;
-            margin:auto;
-            border: 1px solid red;
+        .mainGameArea {
+            display: flex;
+            justify-content: center;
+
+            > div{
+                margin: 0 20px;
+            }
+
+            .GameBoard{
+                height: $GameHeight * $TetraminoSize;
+                width: $GameWidth * $TetraminoSize;
+                background: #000000;
+                margin:auto;
+                border: 1px solid red;
+            }
+
+            .NextBoard {
+                height: $NextHeight * $TetraminoSize;
+                width: $NextWidth * $TetraminoSize;
+                background: #000000;
+                margin:auto;
+                border: 1px solid red;
+            }
         }
     }
 
