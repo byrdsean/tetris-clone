@@ -7,10 +7,13 @@
     const NEXT_BOARD_MAX_WIDTH = 6;     //Number of pieces of the next board's width
     const NEXT_BOARD_MAX_HEIGHT = 4;    //Number of pieces of the next board's height
     const TETRAMINO_SIZE = 30;          //Size (pixels) of the tetramino's height/width
-    const INCREASE_LEVEL_MAX = 40;      //Amount to increase the level's max points to go to the next level
+
+    const INCREASE_LEVEL_MAX = 200;      //Amount to increase the level's max points to go to the next level
     const MAX_LEVELS_IN_GAME = 3;       //Maximum levels in the game
     const POINT_COMPLETE_ROW = 20;      //Amount of points user gets for completing 1 row
+    
     const INCREASE_SPEED_AMOUNT = 150;  //Increase the speed of the game by a certain amount
+    
     const FIXED_BLOCK_OFFSET = 1000;    //Offset the Id of a fixed block on the gameboard, so we can differentiate
                                         //between previous blocks and current blocks of the same tetramino
 
@@ -29,7 +32,8 @@
     let Colors = {
         red : '#FF0000',
         blue : '#0000FF',
-        yellow : '#FFFF00',
+        //yellow : '#FFFF00',
+        yellow: '#D4AC0D',
         green : '#00FF00',
         purple : '#3700FF',
         orange : '#FFA500',
@@ -37,7 +41,8 @@
         white: '#FFFFFF',
         black: '#000000',
         gray: '#808080',
-        boardColor: '#000000'
+        boardColor: '#000000',
+        boardBackground: '#FAE5D3'
     };
     let GameBoardStates = {
         Empty: 0,
@@ -145,7 +150,11 @@
         PointsDisplay = document.querySelector('.points');
         PointsLevelUpDisplay = document.querySelector('.levelup');
         LevelDisplay = document.querySelector('.level');
+        
+        //Display initial points
         DisplayLevel();
+        DisplayPoints();
+        DisplayLevelUpDisplay();
 
         //Store all tetraminos into a dictionary
         AllTetraminos[L_Tetramino.id] = L_Tetramino;
@@ -163,7 +172,7 @@
             for(let r = 0; r < GAME_BOARD_MAX_HEIGHT; r++)
             {
                 Column.push(GameBoardStates.Empty);
-                DrawBlock(r, c, Colors.black);
+                DrawBlock(r, c, Colors.boardBackground);
             }
             BoardInfo.push(Column);
         }
@@ -181,6 +190,14 @@
         Progress.CurrentAnchor = null;
         Progress.CurrentTetramino = null;
         Progress.NextTetramino = null;
+    }
+    //-----------------------------------------------------------------------------------------------------------------------------
+
+    //Display the points to level up
+    function DisplayLevelUpDisplay()
+    {
+        //Display the points to reach the next level
+        PointsLevelUpDisplay.innerHTML = Progress.PointsToNextLevel(Progress.CurrentLevel).toString();
     }
     //-----------------------------------------------------------------------------------------------------------------------------
 
@@ -279,7 +296,7 @@
             BoardInfo[OldX][OldY] = GameBoardStates.Empty;
 
             //Draw a blank block
-            DrawBlock(OldX, OldY, Colors.black);
+            DrawBlock(OldX, OldY, Colors.boardBackground);
         }
     }
     //-----------------------------------------------------------------------------------------------------------------------------
@@ -464,7 +481,7 @@
             {
                 for(let y=0; y<NEXT_BOARD_MAX_HEIGHT; y++)
                 {
-                    DrawBlock(x, y, Colors.black, null, NextCanvas);
+                    DrawBlock(x, y, Colors.boardBackground, null, NextCanvas);
                 }
             }
 
@@ -516,7 +533,7 @@
                     {
                         //Set the block as empty, and draw an empty block
                         BoardInfo[x][CoordY] = GameBoardStates.Empty;
-                        DrawBlock(x, CoordY, Colors.black);
+                        DrawBlock(x, CoordY, Colors.boardBackground);
                     }
 
                     //Push all rows above down by 1
@@ -535,7 +552,7 @@
                                 switch(BoardInfo[x][y])
                                 {
                                     case GameBoardStates.Empty:
-                                        DrawBlock(x, y, Colors.black);
+                                        DrawBlock(x, y, Colors.boardBackground);
                                         break;
                                     default:
                                         if(0 < BoardInfo[x][y])
@@ -549,7 +566,7 @@
                             {
                                 //There is no row above, so the the block to empty, and draw an empy block
                                 BoardInfo[x][y] = GameBoardStates.Empty;
-                                DrawBlock(x, y, Colors.black);
+                                DrawBlock(x, y, Colors.boardBackground);
                             }
                         }
                     }
@@ -619,7 +636,7 @@
                             for(let y = 0; y < GAME_BOARD_MAX_HEIGHT; y++)
                             {
                                 BoardInfo[x][y] = GameBoardStates.Empty;
-                                DrawBlock(x, y, Colors.black);
+                                DrawBlock(x, y, Colors.boardBackground);
                             }
                         }
 
@@ -665,7 +682,7 @@
         DidGameStart = true;
 
         //Display the points to reach the next level
-        PointsLevelUpDisplay.innerHTML = Progress.PointsToNextLevel(Progress.CurrentLevel).toString();
+        DisplayLevelUpDisplay();
 
         //Start the game loop
         StartGameLoop();
@@ -695,15 +712,19 @@
                 switch(e.key)
                 {
                     case "ArrowUp":
+                        e.preventDefault();
                         RotateTetramino();
                         break;
                     case "ArrowDown":
+                        e.preventDefault();
                         MoveDown();
                         break;
                     case "ArrowLeft":
+                        e.preventDefault();
                         MoveLeft();
                         break;
                     case "ArrowRight":
+                        e.preventDefault();
                         MoveRight();
                         break;                                        
                 }
