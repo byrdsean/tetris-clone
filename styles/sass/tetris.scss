@@ -2,20 +2,48 @@
 @import "_reset";
 
 body {
-    background-color: gray;
+    padding: 0;
+    font-size: 16px;
+    font-family: Arial, Helvetica, sans-serif;
 
-    header{
+    header, footer{
         margin:auto;
+        padding:15px 0;
         width:100%;
         text-align: center;
-        background-color:red;
+        background-color: $DarkGray;
+        color: $White;
+    }
+
+    header{
+        h1 {
+            font-weight: 100;
+        }
+    }
+
+    footer {
+        text-align: left;
     }
 
     main{
+        max-width: 1200px;
+        width: 100%;
         margin:auto;
-        width:100%;
+        padding: 20px;
         text-align: center;
-        background-color:green;
+        background-color:$White;
+
+        .description{
+            padding-bottom: 20px;
+        }
+
+        p {
+            margin-bottom: 10px;
+
+            &:last-of-type{
+                margin-bottom: 0px;
+            }
+        }
 
         .mainGameArea {
             display: flex;
@@ -28,25 +56,36 @@ body {
             .GameBoard{
                 height: $GameHeight * $TetraminoSize;
                 width: $GameWidth * $TetraminoSize;
-                background: #000000;
+                background: $LightBeige;
                 margin:auto;
-                border: 1px solid red;
+                border: 1px solid $Black;
             }
 
-            .NextBoard {
-                height: $NextHeight * $TetraminoSize;
-                width: $NextWidth * $TetraminoSize;
-                background: #000000;
-                margin:auto;
-                border: 1px solid red;
+            .nextArea{
+                text-align: left;
+
+                ul{
+                    list-style: none;
+                    margin:0;
+                    padding:0;
+
+                    li {
+                        margin: 10px 0;
+
+                        span {
+                            font-weight: 600;
+                        }
+                    }
+                }
+
+                .NextBoard {
+                    height: $NextHeight * $TetraminoSize;
+                    width: $NextWidth * $TetraminoSize;
+                    background: $LightBeige;
+                    margin:auto;
+                    border: 1px solid $Black;
+                }
             }
         }
-    }
-
-    footer{
-        margin:auto;
-        width:100%;
-        text-align: center;
-        background-color:blue;
     }
 }
