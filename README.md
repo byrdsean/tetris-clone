@@ -74,3 +74,10 @@ To add the sass commands:
     ```
     npm run build
     ```
+
+## Future Improvements
+1. Add ability to pause game.
+2. Update UI displaying points.
+3. Make html mobile responsive.
+4. When level is completed, display message that user needs to press "Enter" to start next level.
+5. Re-style overall UI.
