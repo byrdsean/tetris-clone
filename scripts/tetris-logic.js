@@ -690,7 +690,7 @@
     //-----------------------------------------------------------------------------------------------------------------------------
 
     //Handle user keyboard input
-    document.onkeyup = function(e)
+    document.onkeydown = function(e)
     {
         e = e || window.event;
         if(!IsGameOver)

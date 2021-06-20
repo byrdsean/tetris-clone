@@ -76,6 +76,13 @@ body main .mainGameArea .GameBoard {
 body main .mainGameArea .nextArea {
   text-align: left;
 }
+body main .mainGameArea .nextArea h2 {
+  text-align: center;
+  border-bottom: 1px dotted black;
+  margin-bottom: 10px;
+  padding-bottom: 5px;
+  font-size: 20px;
+}
 body main .mainGameArea .nextArea ul {
   list-style: none;
   margin: 0;
